@@ -1,0 +1,15 @@
+<html>
+<body>
+
+Hello ${userName},<p/>
+ 
+Your account has been modified successfully.<p/>
+
+This is a just for your information. Please contact to support team if you didn't create this account.<p/>
+ 
+Thanks,
+ 
+Team Neova.
+ 
+</body>
+</html>

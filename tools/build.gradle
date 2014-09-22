@@ -1,0 +1,36 @@
+// tools tomcat build.gradle file
+
+repositories {
+  mavenCentral()
+}
+
+project.ext {
+
+	tomcatVersion = 'apache-tomcat-7.0.52'
+	tomcatDir="${projectDir}/tomcat"
+	tomcatTar = "${tomcatDir}/${tomcatVersion}.tar.gz"
+
+	tomcatLatestDir = "${tomcatDir}/latest"
+	tomcatCurrentDir = "${tomcatDir}/current"
+	tomcatWebappsDir = "${tomcatDir}/${tomcatVersion}/webapps"
+	tomcatConfigDir = new File("${tomcatCurrentDir}/conf/Catalina/localhost")
+}
+
+task tomcatClean << {
+  delete tomcatLatestDir, tomcatCurrentDir, file(tomcatVersion)
+}
+
+task tomcatUntar (dependsOn: tomcatClean) << {
+  ant.untar(src: tomcatTar, dest:tomcatDir, compression: 'gzip')
+}
+
+task tomcatSymlink(dependsOn: tomcatUntar) << {
+  ant.symlink(resource: tomcatVersion, link: tomcatLatestDir, overwrite:true)
+  ant.symlink(resource: "latest", link: tomcatCurrentDir, overwrite:true)
+}
+
+task tomcatChmod(dependsOn: tomcatSymlink) << {
+  ant.chmod(perm: "a+x", dir:new File("${tomcatCurrentDir}/bin"), includes:'*.sh')
+}
+
+task tomcatInstall(dependsOn:[tomcatChmod])

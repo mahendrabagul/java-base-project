@@ -1,0 +1,79 @@
+// Sub-Project common Gradle File
+
+apply plugin: 'java'
+
+repositories {
+   mavenCentral()
+}
+
+ext.springVersion='3.2.5.RELEASE'
+ext.springSecurityVersion='3.2.0.RELEASE'
+ext.hibernateVersion='4.2.5.Final'
+ext.mysqlVersion='5.1.29'
+ext.servletVersion='3.0.1'
+ext.cglibVersion='2.2.2'
+ext.javaassistVersion='3.12.1.GA'
+ext.commonsdbcpVersion='1.4'
+
+dependencies {
+	runtime "mysql:mysql-connector-java:$mysqlVersion"
+	compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.12'
+	compile "org.springframework:spring-orm:$springVersion"
+	compile "org.springframework:spring-aop:$springVersion"
+	compile "org.springframework:spring-webmvc:$springVersion"
+	compile "org.springframework:spring-oxm:$springVersion"
+	compile "org.springframework.security:spring-security-core:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-web:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-config:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-taglibs:$springSecurityVersion"
+	compile "org.hibernate:hibernate-entitymanager:$hibernateVersion"
+	compile "org.hibernate:hibernate-validator:4.2.0.Final"
+	compile "org.hibernate:hibernate-core:$hibernateVersion"
+	compile "mysql:mysql-connector-java:$mysqlVersion"
+	compile "commons-dbcp:commons-dbcp:$commonsdbcpVersion"
+	compile "javassist:javassist:$javaassistVersion"
+	compile "org.springframework:spring-context:$springVersion"
+	compile "org.springframework:spring-jdbc:$springVersion"
+		
+	compile	'org.apache.velocity:velocity:1.7'
+	compile	'javax.mail:mail:1.4.5'
+	compile 'org.springframework:spring-context-support:3.2.5.RELEASE'
+
+
+	compile 'org.apache.poi:poi:3.6'
+	compile 'com.lowagie:itext:2.1.7'
+ 		
+	compile "org.springframework:spring-tx:$springVersion"
+	compile "cglib:cglib:$cglibVersion"
+	
+}
+
+def mySqlCommandLine(sql) {
+  "-u ${project.dbUser} -p${project.dbPass} -h ${project.dbHost} -P ${project.dbPort} -e".split().toList() + sql
+}
+
+def firstMember(hashSet) {
+  return hashSet.iterator().next()
+}
+
+task dropDB(type: Exec) {
+  executable = 'mysql'
+  args = mySqlCommandLine("drop database if exists ${project.dbName};")
+}
+
+task createDB(type: Exec, dependsOn: dropDB) {
+  executable = 'mysql'
+  args = mySqlCommandLine("create database ${project.dbName};")
+}
+
+task loadDB(type: Exec, dependsOn: createDB) {
+  executable = 'mysql'
+  args = mySqlCommandLine("use ${project.dbName};")
+}
+
+task buildDB(type: Exec, dependsOn: loadDB) {
+  executable = 'mysql'
+  args = mySqlCommandLine("use ${project.dbName};\\. ${projectDir}/src/db/web.sql")
+}
+
+

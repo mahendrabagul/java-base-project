@@ -1,0 +1,152 @@
+// Root Project Gradle File
+
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'eclipse-wtp'
+
+subprojects {
+	apply plugin: 'pmd'
+	pmd {
+	    ruleSets = [
+            // The first two better work since it's right in the Javadoc...
+            "basic",
+            "braces",
+            "naming",
+            "android",
+            "clone",
+            "codesize",
+            "controversial",
+            "design", 
+            "finalizers",
+            "imports",
+            "j2ee",
+            "javabeans",
+            "junit",
+            "logging-jakarta-commons",
+            "logging-java",
+            "migrating",
+            "optimizations",
+            "strictexception",
+            "strings",
+            "sunsecure",
+            "typeresolution",
+            "unusedcode"
+            ]
+	}
+apply plugin: 'cobertura'
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.saliman:gradle-cobertura-plugin:1.1.1"
+    }
+}
+
+
+
+///////////////////////////////// 
+
+repositories {
+   mavenCentral()
+}
+
+test {
+   useTestNG(){
+     useDefaultListeners = true
+   }
+}
+
+jar {
+    baseName = 'baseProject'
+    version =  '0.1.0'
+}
+
+configurations { providedCompile }
+
+ext.springVersion='3.2.5.RELEASE'
+ext.springSecurityVersion='3.2.0.RELEASE'
+ext.hibernateVersion='4.2.5.Final'
+ext.mysqlVersion='5.1.6'
+ext.servletVersion='3.0.1'
+ext.cglibVersion='2.2.2'
+ext.javaassistVersion='3.12.1.GA'
+ext.commonsdbcpVersion='1.4'
+
+dependencies {
+	providedCompile 'javax.servlet:javax.servlet-api:3.0.1'
+	runtime 'javax.servlet:jstl:1.2'
+	compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.12'
+	testCompile 'junit:junit:4.11'
+	compile 'org.testng:testng:6.8.5'
+		
+	compile	'org.apache.velocity:velocity:1.7'
+	compile	'javax.mail:mail:1.4.5'
+	compile 'org.springframework:spring-context-support:3.2.5.RELEASE'
+	compile 'org.apache.poi:poi:3.6'
+	compile 'com.lowagie:itext:2.1.7'
+	
+	compile 'org.hibernate.javax.persistence:hibernate-jpa-2.0-api:1.0.0.Final'
+   	compile "org.springframework:spring-orm:$springVersion"
+	compile "org.springframework:spring-aop:$springVersion"
+	compile "org.springframework:spring-webmvc:$springVersion"
+	compile "org.springframework:spring-oxm:$springVersion"
+	compile "org.springframework.security:spring-security-core:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-web:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-config:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-taglibs:$springSecurityVersion"
+	compile "org.hibernate:hibernate-entitymanager:$hibernateVersion"
+	compile "org.hibernate:hibernate-validator:4.2.0.Final"
+	compile "org.hibernate:hibernate-core:$hibernateVersion"
+	compile "mysql:mysql-connector-java:$mysqlVersion"
+	compile "commons-dbcp:commons-dbcp:$commonsdbcpVersion"
+	compile "javassist:javassist:$javaassistVersion"
+	compile "org.springframework:spring-context:$springVersion"
+	compile "org.springframework:spring-jdbc:$springVersion"
+	compile "org.springframework:spring-tx:$springVersion"
+	compile "cglib:cglib:$cglibVersion"
+	compile 'log4j:log4j:1.2.16'
+	
+	
+}
+sourceSets.main.compileClasspath += configurations.providedCompile
+
+eclipse {
+  def subprojectsSrcDir = []
+  subprojects.each {
+	if (it.name != 'tools') {
+		subprojectsSrcDir.add(it.name)
+	}
+  }
+  for(i in subprojectsSrcDir) {
+	sourceSets {
+		main {
+  		  java {
+			srcDir "${i}/src/main/java"
+			srcDir "${i}/src/test/java"
+			srcDir "${i}/src/seleniumTest/java"
+		  }
+	 	  resources {
+			srcDir "${i}/src/main/resources"
+		  }
+		}
+	}
+  }
+}
+
+task regenEclipse {
+  dependsOn = [':cleanEclipse', ':eclipse']
+  group = 'IDE'
+  description = 'Cleans and re-generates all Eclipse files.'
+}
+
+task doProjectSetup (dependsOn: [':clean', ':tools:tomcatInstall', ':common:buildDB', ':web:deployWar', ':regenEclipse']) {
+	
+	group = 'Project Setup'
+	description = 'clean build and performs basic Project Setup (Can use for First time Setup)'
+	
+}
+
+

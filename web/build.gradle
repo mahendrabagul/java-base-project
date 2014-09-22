@@ -1,0 +1,181 @@
+// Sub Project Web Gradle File
+
+apply plugin: 'java' 
+apply plugin: 'war'
+
+repositories {
+	mavenCentral()
+}
+
+sourceSets {
+  main {
+     java {
+         srcDir 'src/main/java'
+     }
+     resources {
+	 srcDir 'src/main/resources'
+     }
+  }
+  test {
+    java {
+    	srcDir 'src/test/java'
+		srcDir 'src/seleniumTest/java'
+    }
+  }
+  
+  seleniumTest {
+    java {
+      srcDir 'src/seleniumTest/java'
+    }
+  }
+}
+
+test {
+  useTestNG(){
+  		useDefaultListeners = true
+  	}
+}
+
+evaluationDependsOn ':common'
+evaluationDependsOn ':tools'
+jar.enabled = true
+project.ext {
+  tomcatVersion = '7.0.52'
+  jarDir="${buildDir}/app"
+  warDir="${buildDir}/dist"
+  tomcatDir="../tools/tomcat/apache-tomcat-7.0.52"
+  tomcatBinDir="${tomcatDir}/bin"
+  webappsDir="${tomcatDir}/webapps"
+  libDir = "${projectDir}/lib" 
+  host = 'localhost'
+  tomcatPort = '8080'
+  seleniumPort = '4444'
+  seleniumDir="../tools/selenium"
+
+}
+
+ext.springVersion='3.2.5.RELEASE'
+ext.springSecurityVersion='3.2.0.RELEASE'
+ext.hibernateVersion='4.2.5.Final'
+ext.mysqlVersion='5.1.6'
+ext.servletVersion='3.0.1'
+ext.cglibVersion='2.2.2'
+ext.javaassistVersion='3.12.1.GA'
+ext.commonsdbcpVersion='1.4'
+
+dependencies {
+	providedCompile "org.apache.tomcat:tomcat-servlet-api:${tomcatVersion}"	
+	compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.12'
+	compile project(':common')
+	
+	compile	'org.apache.velocity:velocity:1.7'
+	compile	'javax.mail:mail:1.4.5'
+	compile 'org.springframework:spring-context-support:3.2.5.RELEASE'
+	
+		
+	providedCompile 'javax.servlet:javax.servlet-api:3.0.1'
+	runtime 'javax.servlet:jstl:1.2'
+	testCompile 'org.seleniumhq.selenium:selenium-java:2.37.0' 
+	testCompile fileTree(project.libDir) 	
+	testCompile 'junit:junit:4.11'
+	testCompile 'org.testng:testng:6.8.5'
+	compile fileTree(project.libDir)
+	compile 'org.seleniumhq.selenium:selenium-java:2.37.0'
+	compile "org.springframework:spring-orm:$springVersion"
+	compile "org.springframework:spring-aop:$springVersion"
+	compile "org.springframework:spring-webmvc:$springVersion"
+	compile "org.springframework:spring-oxm:$springVersion"
+	compile "org.springframework.security:spring-security-core:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-web:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-config:$springSecurityVersion"
+	compile "org.springframework.security:spring-security-taglibs:$springSecurityVersion"
+	compile "org.hibernate:hibernate-entitymanager:$hibernateVersion"
+	compile "org.hibernate:hibernate-validator:4.2.0.Final"
+	compile "org.hibernate:hibernate-core:$hibernateVersion"
+	compile "mysql:mysql-connector-java:$mysqlVersion"
+	compile "commons-dbcp:commons-dbcp:$commonsdbcpVersion"
+	compile "javassist:javassist:$javaassistVersion"
+	compile "org.springframework:spring-context:$springVersion"
+	compile "org.springframework:spring-jdbc:$springVersion"
+	compile "org.springframework:spring-tx:$springVersion"
+	compile "cglib:cglib:$cglibVersion"
+	compile 'log4j:log4j:1.2.16'
+  	compile 'org.apache.poi:poi:3.6'
+	compile 'com.lowagie:itext:2.1.7'
+	seleniumTestCompile sourceSets.main.output
+	seleniumTestCompile sourceSets.test.output
+	seleniumTestCompile configurations.testCompile
+	seleniumTestCompile configurations.testRuntime
+	
+}
+
+war {
+  dependsOn << 'jar'
+  dependsOn << ':common:jar'
+ 
+  archiveName = 'neobase.war'
+  destinationDir = file(warDir)
+} 
+
+defaultTasks "deployWar"
+
+task cleanupPreviousDeployment(type: Copy, dependsOn: war) {
+  inputs.file file(tasks.war.archivePath)
+  outputs.dir file(webappsDir)
+ delete("${webappsDir}/${tasks.war.archiveName - '.war'}")
+}
+
+task deployWar(type: Copy, dependsOn: cleanupPreviousDeployment) {
+  inputs.file file(tasks.war.archivePath)
+  outputs.dir file(webappsDir)
+  from(file(tasks.war.archivePath)) {
+    include('neobase.war')
+  }
+  into(file(webappsDir))
+}
+
+task runSeleniumTest(type: Test, dependsOn: seleniumTestClasses) {
+
+	useTestNG()
+}
+
+runSeleniumTest.doFirst {
+
+	startSelenium()
+	startTomcat()
+}
+
+runSeleniumTest.doLast {
+		
+	stopTomcat()
+	stopSelenium()
+}
+
+def startTomcat() {
+  project.exec {
+    workingDir = file(project.tomcatBinDir)
+    executable = './startup.sh'
+  }
+}
+
+def stopTomcat() {
+  project.exec {
+     workingDir = file(project.tomcatBinDir)
+    executable = './shutdown.sh'
+  }
+}
+
+def startSelenium() {
+  project.exec {
+    workingDir = file(project.seleniumDir)
+    commandLine = ['./selenium.sh', 'start']
+  }
+}
+
+def stopSelenium() {
+  project.exec {
+    workingDir = file(project.seleniumDir)
+    commandLine = ['./selenium.sh', 'stop']
+  }
+}
+

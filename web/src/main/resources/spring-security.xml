@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:beans="http://www.springframework.org/schema/beans"
+	xsi:schemaLocation="
+ 
+http://www.springframework.org/schema/beans
+ 
+ 
+http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+ 
+ 
+http://www.springframework.org/schema/security
+ 
+ 
+http://www.springframework.org/schema/security/spring-security-3.2.xsd
+">
+
+	<sec:http access-decision-manager-ref="accessDecisionManager"
+		use-expressions="true" auto-config="true">
+
+		<sec:intercept-url pattern="/user/admin/**" access="hasRole('ROLE_ADMIN')" />
+		<sec:intercept-url pattern="/role/admin/**" access="hasRole('ROLE_ADMIN')" />
+		<sec:intercept-url pattern="/group/admin/**" access="hasRole('ROLE_ADMIN')" />
+
+		<sec:intercept-url access="hasAnyRole('ROLE_MODERATOR','ROLE_ADMIN')"
+			pattern="/group/moderator/*" />
+		<sec:intercept-url access="hasAnyRole('ROLE_MODERATOR','ROLE_ADMIN')"
+			pattern="/user/moderator/*" />
+		<sec:intercept-url access="hasAnyRole('ROLE_MODERATOR','ROLE_ADMIN')"
+			pattern="/role/moderator/*" />
+		<sec:intercept-url access="permitAll" pattern="/neova/*" />
+
+		<!-- <sec:session-management invalid-session-url="/user-login.html"> <sec:concurrency-control 
+			max-sessions="1" error-if-maximum-exceeded="true" /> </sec:session-management> -->
+
+		<!-- Edited -->
+		<sec:form-login authentication-success-handler-ref="redirectRoleStrategy"
+			login-page="/user-login.html" default-target-url="/success-login.html"
+			authentication-failure-url="/user-login.html?error" />
+		<sec:logout logout-success-url="/user-login.html?logout" />
+
+		<sec:remember-me key="neovaappkey" />
+		<sec:logout invalidate-session="true"
+			delete-cookies="JSESSIONID,SPRING_SECURITY_REMEMBER_ME_COOKIE"
+			logout-success-url="/user-login.html"></sec:logout>
+		<sec:access-denied-handler error-page="/access-denied.html" />
+
+		<!-- /Edited -->
+	</sec:http>
+
+	<!-- Edited -->
+
+	<beans:bean id="redirectRoleStrategy"
+		class="com.neova.controller.RoleBasedAuthenticationSuccessHandler">
+		<beans:property name="roleUrlMap">
+			<beans:map>
+				<beans:entry key="ROLE_ADMIN" value="/index.html" />
+				<beans:entry key="ROLE_MODERATOR" value="/index.html" />
+			</beans:map>
+		</beans:property>
+	</beans:bean>
+
+	<sec:authentication-manager>
+		<sec:authentication-provider
+			user-service-ref="customUserDetailsService">
+			<sec:password-encoder hash="plaintext" />
+		</sec:authentication-provider>
+	</sec:authentication-manager>
+
+	<!-- /Edited -->
+
+	<beans:bean id="accessDecisionManager"
+		class="org.springframework.security.access.vote.AffirmativeBased">
+		<beans:property name="decisionVoters">
+			<beans:list>
+				<beans:ref bean="roleHierarchyVoter" />
+				<beans:bean
+					class="org.springframework.security.web.access.expression.WebExpressionVoter">
+					<beans:property name="expressionHandler">
+						<beans:bean
+							class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler">
+							<beans:property name="roleHierarchy" ref="roleHierarchy" />
+						</beans:bean>
+					</beans:property>
+				</beans:bean>
+				<beans:bean
+					class="org.springframework.security.access.vote.AuthenticatedVoter" />
+			</beans:list>
+		</beans:property>
+	</beans:bean>
+	<beans:bean id="roleHierarchyVoter"
+		class="org.springframework.security.access.vote.RoleHierarchyVoter">
+		<beans:constructor-arg ref="roleHierarchy" />
+	</beans:bean>
+
+	<beans:bean id="roleHierarchy"
+		class="org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl">
+		<beans:property name="hierarchy">
+			<beans:value>
+
+			</beans:value>
+		</beans:property>
+	</beans:bean>
+
+</beans:beans>
